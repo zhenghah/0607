@@ -7,7 +7,7 @@ import time
 
 
 class BasicData:
-    def __init__(self, which_data='mine'):  # which_data is GoodScent or Paper
+    def __init__(self, which_data='mine'):  
 
         self.dataPath = '/tf/haha/all_data/'
 
@@ -106,7 +106,7 @@ class BasicData:
                             break
         print('final od_times with all samples:', end=' ')
         print(self.od_times)
-        # 以上部分测试完成， 关于分fold之类的之后再说吧
+        
 
     def readSmiles(self, filelist=None):
         all_smile = []
@@ -288,7 +288,7 @@ class Transformer2OD:
             range(self.sample))  # 如果这里加上seed反倒结果每次都不一样
 
         # 3. MASK
-        self.max_mol = 60 #################################本来是0！！！！！！！！！！！！！！！
+        self.max_mol = 60 
         num_atom_list = []  # 每个分子的原子个数的列表
         for i in range(len(all_mol)):
             temp = all_mol[i].GetNumAtoms()
@@ -522,7 +522,7 @@ class Transformer2OD:
         from IPython.display import SVG
         from rdkit.Chem.Draw import IPythonConsole
 
-        smiles_list1 = smiles_list.copy()  # 函数传入的参数竟然不是深拷贝？？？？？
+        smiles_list1 = smiles_list.copy()  
         temp = self.failed_mol.copy()
         temp.sort(reverse=True)
         for each in temp:
@@ -753,8 +753,7 @@ class Transformer2OD:
                 mollist, highlightAtomLists=highlist, subImgSize=(500, 500), returnPNG=False)
             img.save(savepath+self.od_name[od]+'.png')
 
-        # 制作mask
-        # 制作输入输出样本
+        
 
 
 
@@ -944,139 +943,7 @@ class Transformer2OD_tada(Transformer2OD):
         return model
 
     
-    
-    def modelBuild_sub(self, batch_size, num_heads=6, single_attn_dim=30, feedforward_dim=180, 
-                    num_encoderLayer=0, num_decoderLayer=2, dropout_rate=0.1, lr=0.001, compile=True, 
-                    normal_init=False, temperature=1):
-        import Transformer_mol3 as my_trans # !!!!!!!
 
-        encoder_dim = num_heads * single_attn_dim
-
-        print('modelBuild2-temperature %f' % temperature)
-        
-        transformer = my_trans.Transformer_sub( # !!!!!!!!!!!!!!!!!!!!!!
-            num_dc_layers=num_decoderLayer,
-            d_model=encoder_dim,
-            num_heads=num_heads,
-            dff=feedforward_dim,
-            num_cls=self.feature_od,
-            rate=0.1,
-            temperature=temperature
-        )
-
-        input_cls = tf.keras.Input(shape=(1, 1), batch_size=batch_size)
-        input_mol = tf.keras.Input(
-            shape=(self.max_mol, encoder_dim), batch_size=batch_size)
-        input_mask = tf.keras.Input(
-            shape=(1, 1, self.max_mol), batch_size=batch_size)
-        input_label = tf.keras.Input(
-            shape=(self.feature_od), batch_size=batch_size)
-
-        inputs = [input_cls, input_mol, input_mask, input_label]
-        dc_output, attn= transformer(inputs)
-        outputs = []
-        for i in range(self.feature_od):
-            outputs.append(tf.keras.layers.Dense(
-                1, activation='sigmoid', name=self.od_name[i])(dc_output[:, i, :]))
-
-        model = tf.keras.Model(inputs=inputs, outputs=outputs)
-
-        self.input_items = len(inputs)
-
-        if compile:
-            # loss list 和 metrics list
-            loss_list = []
-            metrics_list = []
-
-            for each in range(self.feature_od):
-                temp_loss = tf.keras.losses.BinaryCrossentropy()
-                temp_metrics = [
-                    tf.keras.metrics.Precision(
-                        name=self.od_name[each]+'_precision'),
-                    tf.keras.metrics.Recall(name=self.od_name[each]+'_recall')
-                ]
-                loss_list.append(temp_loss)
-                metrics_list.append(temp_metrics)
-
-            learning_rate = lr
-            optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-
-            model.compile(optimizer=optimizer,
-                          loss=loss_list, metrics=metrics_list)
-
-        if normal_init:
-            weights = model.get_weights()
-            normal_weights = []
-            for each in weights:
-                normal_weights.append(np.random.normal(
-                    loc=0.0, scale=0.01, size=each.shape))
-            model.set_weights(normal_weights)
-
-        return model
-        
-
-    
-    def modelBuild_fc(self, units, d_model, batch_size, lr=0.001, compile=True, normal_init=False, temperature=0.7):
-        '''
-        units = [100, 50]
-        d_model = dim of atom_attr
-        '''
-        import Transformer_mol3 as my_trans # !!!!!!!
-
-        fc_model = my_trans.EC2OD(units, num_cls=self.feature_od, temperature=temperature)
-
-        input_cls = tf.keras.Input(shape=(1, 1), batch_size=batch_size) # 没用的输入, 可以直接使用inputRebuild
-        input_ec = tf.keras.Input(shape=(self.max_mol, d_model), batch_size=batch_size)
-        input_mask = tf.keras.Input(
-            shape=(1, 1, self.max_mol), batch_size=batch_size)
-        input_label = tf.keras.Input(
-            shape=(self.feature_od), batch_size=batch_size)
-
-        inputs = [input_cls, input_ec, input_mask, input_label]
-
-        fc_output = fc_model(inputs)
-        outputs = []
-        for i in range(self.feature_od):
-            outputs.append(
-                tf.keras.layers.Dense(1, activation='sigmoid', name=self.od_name[i])(fc_output[i])
-            )
-
-        model = tf.keras.Model(inputs=inputs, outputs=outputs)
-
-        self.input_items = len(inputs)
-
-        if compile:
-            # loss list 和 metrics list
-            loss_list = []
-            metrics_list = []
-
-            for each in range(self.feature_od):
-                temp_loss = tf.keras.losses.BinaryCrossentropy()
-                temp_metrics = [
-                    tf.keras.metrics.Precision(
-                        name=self.od_name[each]+'_precision'),
-                    tf.keras.metrics.Recall(name=self.od_name[each]+'_recall')
-                ]
-                loss_list.append(temp_loss)
-                metrics_list.append(temp_metrics)
-
-            learning_rate = lr
-            optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-
-            model.compile(optimizer=optimizer,
-                          loss=loss_list, metrics=metrics_list)
-
-        if normal_init:
-            weights = model.get_weights()
-            normal_weights = []
-            for each in weights:
-                normal_weights.append(np.random.normal(
-                    loc=0.0, scale=0.01, size=each.shape))
-            model.set_weights(normal_weights)
-
-        return model
-        
-    
     
     def dataSetMaker(self, batch_size, which_fold=None):
         if which_fold is not None:
@@ -1240,13 +1107,6 @@ class Transformer2OD_tada(Transformer2OD):
             learning_rate=hpara['learning_rate'])
 
         # 开始表演
-
-        # train_step_signature = [
-        #     tf.TensorSpec(shape=(None, None), dtype=tf.int64),
-        #     tf.TensorSpec(shape=(None, None), dtype=tf.int64),
-        # ]
-
-        # @tf.function(input_signature=train_step_signature)
 
         @tf.function
         def train_step(input_batch, output_batch):
@@ -1458,104 +1318,7 @@ class Transformer2OD_tada(Transformer2OD):
                                     count_run += 1
     
     
-    def odData_sub(self, smiles_list, sub_list=None, od_name=None):
-        # 将LABEL替换为子结构
-        if sub_list is None:
-            sub_list = ['C(=O)O', 'C=C-C=C', 'C1CCCC1', 'CCCCCC', 'c1ccccc1', 
-                        'C(=O)O&&c1ccccc1', 'C(=O)O~~c1ccccc1', 'C=C-C=C~~C1CCCC1']
-
-        from rdkit import Chem
-
-        if od_name is None:
-            od_name = sub_list
-        self.od_name = od_name
-
-        all_mol = []
-        for i in range(len(smiles_list)):
-            if i not in self.failed_mol:
-                mol = Chem.MolFromSmiles(smiles_list[i])
-                all_mol.append(mol)
-        if len(all_mol) != self.sample:
-            raise('wrong in odData')
-
-        self.feature_od = len(sub_list)
-
-        od_mat_ori = np.zeros((self.sample, self.feature_od))
-        for j in range(len(sub_list)):
-            if '&&' in sub_list[j]:
-                sub_split = sub_list[j].split('&&')
-
-                sub_strc = []
-                for each_sub in sub_split:
-                    sub_strc.append(Chem.MolFromSmiles(each_sub))
-
-                for i in range(self.sample):
-                    if all_mol[i].HasSubstructMatch(sub_strc[0]) and all_mol[i].HasSubstructMatch(sub_strc[1]):
-                        od_mat_ori[i][j] = 1
-
-            elif '~~' in sub_list[j]:
-                sub_split = sub_list[j].split('~~')
-
-                sub_strc = []
-                for each_sub in sub_split:
-                    sub_strc.append(Chem.MolFromSmiles(each_sub))
-
-                for i in range(self.sample):
-                    if all_mol[i].HasSubstructMatch(sub_strc[0]) or all_mol[i].HasSubstructMatch(sub_strc[1]):
-                        od_mat_ori[i][j] = 1
-
-            else:
-                for i in range(self.sample):
-                    sub_strc = Chem.MolFromSmiles(sub_list[j])
-                    if all_mol[i].HasSubstructMatch(sub_strc):
-                        od_mat_ori[i][j] = 1
-
-        # for i in range(len(sub_list)):
-        #     # sub_split = sub_list[i].split
-        #     sub_list[i] = Chem.MolFromSmiles(sub_list[i])
-
-        # od_mat_ori = np.zeros((self.sample, self.feature_od))
-        # for i in range(self.sample):
-        #     for j in range(self.feature_od):
-        #         if all_mol[i].HasSubstructMatch(sub_list[j]):
-        #             od_mat_ori[i][j] = 1
-
-        od_mat_ori = tf.convert_to_tensor(od_mat_ori, dtype=tf.float32)
-
-        # shuffle
-        od_shuffled = tf.gather(od_mat_ori, self.shuffle_index)
-        print('od_shuffled.shape = ', end=' ')
-        print(od_shuffled.shape)
-
-        self.od_train = od_shuffled[: self.num_train]
-        self.od_test = od_shuffled[self.num_train:]
-
-        # 阳性样本训练和测试集上的分布
-        positive = tf.reduce_sum(self.od_test, axis=0)
-        positive_dict = {}
-        for each in range(self.feature_od):
-            positive_dict[self.od_name[each]] = positive[each].numpy()
-        print('positive sample distribution in test set:')
-        print(positive_dict)
-
-        positive = tf.reduce_sum(self.od_train, axis=0)
-        positive_dict = {}
-        for each in range(self.feature_od):
-            positive_dict[self.od_name[each]] = positive[each].numpy()
-        print('positive sample distribution in test set:')
-        print(positive_dict)
-        self.positive_dict = positive_dict
-
-    def inputRebuild(self, ec_output_train, ec_output_test):
-        # 当使用推测OD的encoder结果推测子结构时， 输入不再需要邻接矩阵等
-        new_inputs = list(self.train_input)
-        new_inputs = (new_inputs[0], ec_output_train, new_inputs[4])
-        self.train_input = new_inputs
-        new_inputs = list(self.test_input)
-        new_inputs = (new_inputs[0], ec_output_test, new_inputs[4])
-        self.test_input = new_inputs
-
-
+    
     def attnExtract(self, model, num_cls=None, trainORtest='test', ecORdc='dc', dc_layer=True):
         # 可以抽取dc_attn, ec_attn, ec_output
 
@@ -1580,22 +1343,7 @@ class Transformer2OD_tada(Transformer2OD):
 
         return attn
 
-    # 有点复杂之后再搞吧。
-    def drawAttn_EC(self, attn, smiles_list, pred, savepath, max_draw=50, per_head=True, trainORtest='test', attn_c=4, posneg='positive'):
-        from rdkit import rdBase, Chem
-        from rdkit.Chem import AllChem, Draw
-        from rdkit.Chem.Draw import rdMolDraw2D
-        from IPython.display import SVG
-        from rdkit.Chem.Draw import IPythonConsole
-
-        smiles_list1 = smiles_list.copy()  # 函数传入的参数竟然不是深拷贝？？？？？
-        temp = self.failed_mol.copy()
-        temp.sort(reverse=True)
-        for each in temp:
-            smiles_list1.pop(each)
-
-
-
+    
 
 class Transformer2Sub(Transformer2OD_tada):
     def __init__(self):

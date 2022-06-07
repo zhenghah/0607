@@ -1,9 +1,9 @@
-# Transformer模型返回ec_output和ec_attn
+# This code is written based on https://www.tensorflow.org/text/tutorials/transformer
 
 import numpy as np
 import tensorflow as tf
 
-def scaled_dot_product_attention_AD(q, k, v, mask, adj=None, dist=None, dist_value='original'): # distance和邻接矩阵！！！！！
+def scaled_dot_product_attention_AD(q, k, v, mask, adj=None, dist=None, dist_value='original'): 
     '''
     q.shape = (batch, num_heads, num_q, attention_dim) (注：attention_dim是指对于每个attention的feature的个数. 
                                                         encoder时，num_q = max_mol_real, decoder时，num_q = num_cls)
@@ -100,7 +100,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         concat_attention = tf.reshape(scaled_attention,
                                     (batch_size, -1, self.d_model))  # (batch_size, num_q, d_model)
 
-        output = self.dense(concat_attention)  # (batch_size, num_q, d_model) #就感觉这个dense这么多余
+        output = self.dense(concat_attention)  # (batch_size, num_q, d_model) 
 
         return output, attention_weights
 
@@ -182,7 +182,7 @@ class MultiHeadAttention_encoder(tf.keras.layers.Layer):
         concat_attention = tf.concat([concat_attention_dist, concat_attention_adj], axis=-1) # (batch_size, num_q, d_model)
         attention_weights = tf.concat([attention_weights_dist, attention_weights_adj], axis=1) # (batch, num_heads, max_mol, max_mol)
 
-        output = self.dense(concat_attention)  # (batch_size, num_q, d_model) #就感觉这个dense这么多余
+        output = self.dense(concat_attention)  # (batch_size, num_q, d_model) 
 
         return output, attention_weights
 
@@ -207,7 +207,7 @@ class EncoderLayer(tf.keras.layers.Layer):
         self.dropout1 = tf.keras.layers.Dropout(rate)
         self.dropout2 = tf.keras.layers.Dropout(rate)
 
-    def call(self, x, mask, adj, dist, dist_value): # 此处应有training参数
+    def call(self, x, mask, adj, dist, dist_value): 
         '''
         x.shape: (batch, max_mol_real, attention_dim * num_heads)
         mask.shape: (batch, 1, 1, max_mol_real)
@@ -240,7 +240,7 @@ class Encoder(tf.keras.layers.Layer): # num_layers是num_encoderLayer
 
         self.dropout = tf.keras.layers.Dropout(rate)
 
-    def call(self, x, mask, adj, dist, dist_value): # 此处应有training参数
+    def call(self, x, mask, adj, dist, dist_value): 
         '''
         x.shape: (batch, max_mol_real, attention_dim * num_heads)
         mask.shape: (batch, 1, 1, max_mol_real)
@@ -277,7 +277,7 @@ class DecoderLayer(tf.keras.layers.Layer):
         self.dropout1 = tf.keras.layers.Dropout(rate)
         self.dropout2 = tf.keras.layers.Dropout(rate)
 
-    def call(self, x, enc_output, mask): # 此处应有training参数
+    def call(self, x, enc_output, mask): 
         '''
         x.shape = (batch, num_cls, attention_dim * num_heads)
         enc_output.shape = (batch_size, max_mol_real, d_model)
@@ -309,7 +309,7 @@ class Decoder(tf.keras.layers.Layer):# num_layers是num_decoderLayer
 
         self.dropout = tf.keras.layers.Dropout(rate)
 
-    def call(self, input, enc_output, mask): # 此处应有training参数
+    def call(self, input, enc_output, mask): 
         '''
         input.shape = (batch, 1, 1)
         enc_output.shape = (batch_size, max_mol_real, d_model)
@@ -331,7 +331,7 @@ class Decoder(tf.keras.layers.Layer):# num_layers是num_decoderLayer
 
 
 # 加入了contrastive loss
-class Transformer4(tf.keras.layers.Layer):  # 这模型应该是0.561的那个模型
+class Transformer4(tf.keras.layers.Layer):  
     def __init__(self, num_ec_layers, num_dc_layers, d_model, num_heads, dff, num_cls, 
                     rate=0.1, dist_value='original', temperature=None):
         # attention_dim = d_model / num_heads
@@ -351,7 +351,7 @@ class Transformer4(tf.keras.layers.Layer):  # 这模型应该是0.561的那个�
         if temperature is not None:
             self.contrastive_list = [Contrastive(temperature=temperature) for i in range(num_cls)]
 
-    def call(self, inputs): # 此处应有training参数， 因为使用model.fit所以不需要
+    def call(self, inputs): 
         '''
         max_mol_real是真实的分子最大长度， max_mol是加上了cls输入后的长度
         inputs = [
@@ -394,95 +394,6 @@ class Transformer4(tf.keras.layers.Layer):  # 这模型应该是0.561的那个�
 
 
 
-class Transformer_sub(tf.keras.layers.Layer):  
-    def __init__(self, num_dc_layers, d_model, num_heads, dff, num_cls, 
-                    rate=0.1, temperature=None):
-        # attention_dim = d_model / num_heads
-        super().__init__(name='transformer')
-
-        self.num_cls = num_cls
-        self.num_dc_layers = num_dc_layers
-        
-        self.decoder = [Decoder(num_dc_layers, d_model, num_heads, dff, 1, rate) for i in range(num_cls)]
-
-        if temperature is not None:
-            self.contrastive_list = [Contrastive(temperature=temperature) for i in range(num_cls)]
-
-    def call(self, inputs): # 此处应有training参数， 因为使用model.fit所以不需要
-        '''
-        inputs = [
-            [1], # shape=(batch, 1, 1)  注：无论多少cls, 输入都只有一个1，多cls通过多个cls_embedding实现
-            mol_atom_feature, # shape=(batch, max_mol_real, d_model)
-            mask # shape = (batch, 1, 1, max_mol_real)
-            label_cls # shape = (batch, num_cls)
-        ]
-        '''
-        dc_output = []
-        attns = [[] for i in range(self.num_dc_layers)]
-        for i in range(self.num_cls):
-            dc, attn = self.decoder[i](inputs[0], inputs[1], inputs[2]) # (batch, 1, d_model), [(batch, num_heads, 1, max_mol_real)]
-            dc_output.append(dc)
-            for j in range(self.num_dc_layers):
-                attns[j].append(attn[j])
-
-        dc_output = tf.concat(dc_output, axis=-2) # (batch, num_cls, d_model)
-
-        for i in range(self.num_dc_layers):
-            attns[i] = tf.concat(attns[i], axis=-2) # [(batch, num_heads, num_cls, max_mol_real)]
-
-        l2_output = []
-        for i in range(self.num_cls):
-            temp = self.contrastive_list[i](dc_output[:, i, :], inputs[-1][:, i]) # (batch, d_model)
-            temp = tf.expand_dims(temp, axis=1) # (batch, 1, d_model)
-            l2_output.append(temp)
-        l2_output = tf.concat(l2_output, axis=-2) # (batch, num_cls, d_model)
-
-        return (l2_output, attns)
-
-
-class EC2OD(tf.keras.layers.Layer): # 用训练好的encoder直接推测od
-    def __init__(self, units, num_cls, temperature, rate=0.1):
-        # 是不是用relu作为激活函数，使用dropout是不合理的？
-        super().__init__()
-
-        self.units = units
-        # self.rate = rate
-
-        self.hiddenLayers = [self.hiddenMake() for i in range(num_cls)]
-        self.contra_list = [Contrastive(temperature=temperature) for i in range(num_cls)]
-
-    def hiddenMake(self):
-        layer_list = []
-        for i in range(len(self.units)):
-            layer_list.append(tf.keras.layers.Dense(self.units[i], activation='relu'))
-        return tf.keras.models.Sequential(layer_list)
-
-    def call(self, inputs):
-        '''
-        [1], # shape=(batch, 1, 1) (注: 没有必要存在, 懒得重写模型输入的代码)
-        ec_output, # shape = (batch, max_mol, d_model)
-        mask, # shape = (batch, 1, 1, max_mol)
-        label, # shape = (batch, num_cls)
-        '''
-        num_cls = inputs[-1].shape[1]
-
-        mask = tf.squeeze(inputs[-2]) # (batch, max_mol)
-        mask = tf.expand_dims(mask, axis=-1) # (batch, max_mol, 1)
-        mask = tf.equal(mask, 0) # (batch, max_mol, 1)
-        mask = tf.cast(mask, dtype=tf.float32)
-
-        ec_output = inputs[-3]
-        ec_output *= mask # (batch, max_mol, d_model)
-        ec_output = tf.reduce_sum(ec_output, axis=1) # (batch, d_model)
-
-        output = []
-        for i in range(num_cls):
-            x = self.hiddenLayers[i](ec_output) # (batch, units[-1])
-            x = self.contra_list[i](x, label=inputs[-1][:, i]) # (batch, d_model)
-            output.append(x)
-
-        return output
-        
 
 
 class EConly(tf.keras.layers.Layer):
@@ -513,7 +424,7 @@ class EConly(tf.keras.layers.Layer):
         return tf.keras.models.Sequential(layer_list)
 
 
-    def call(self, inputs): # 此处应有training参数， 因为使用model.fit所以不需要
+    def call(self, inputs): 
         '''
         max_mol_real是真实的分子最大长度， max_mol是加上了cls输入后的长度
         inputs = [
