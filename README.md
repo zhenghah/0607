@@ -5,10 +5,10 @@ Only a part of visualization results are shown in the paper, more results can be
 
 More visualization results corresponding to the figures in paper can be found according to the following table.
 
-|Figure in the paper |file path for more results |
-|-|-|
-|Figure 6|attention_result/substructures/sub100-6_30_51|
-|Figure 7 (2 decoder layers)|attention_result/substructures/sub100-6_30_52-dc|
+|Figure in the paper |file path for more results |memo|
+|-|-|-|
+|Figure 6|attention_result/substructure prediction/sub-12_30_61-eachdc | TP samples|
+|Figure 7 (2 decoder layers)|attention_result/substructure prediction/sub-12_30_61-eachdc|
 |Figure 7 (3 decoder layers)|attention_result/substructures/sub100k-6_30_53-dc|
 |Figure 7 (4 decoder layers)|attention_result/substructures/sub100k-6_30_54-dc|
 |Figure 8 (1 decoder layers)|attention_result/substructures/sub100-6_30_51|
