@@ -8,8 +8,6 @@ More visualization results corresponding to the figures in paper can be found ac
 |Figure in the paper |file path for more results |memo|
 |-|-|-|
 |Figure 6|attention_result/substructure prediction/sub-12_30_61-eachdc | TP samples|
-|Figure 6|attention_result/substructure prediction/sub-12_30_61-neg | TN samples|
-|Figure 6|attention_result/substructure prediction/sub-12_30_61-neg-last4 | TN samples with both 2 substructures|
 |Figure 7 (2 decoder layers)|attention_result/substructure prediction/sub-12_30_62-eachdc|TP samples |
 |Figure 7 (3 decoder layers)|attention_result/substructures/sub-12_30_63-eachdc|TP samples |
 |Figure 7 (4 decoder layers)|attention_result/substructures/sub-12_30_64-eachdc|TP samples |
