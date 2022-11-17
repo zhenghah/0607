@@ -23,6 +23,7 @@ More visualization results corresponding to the figures in paper can be found ac
 'od_data.ipynb' is used to collect SMILES and corresponding odor descriptors from The Good Scents Company (http://www.thegoodscentscompany.com/). You can collect data with this code directly after changing the save path at first line.
 
 'experiment.ipynb' is an example to run the program that used to predict substructures and odor descriptors. Remember to change all the file path appear in this file to your local file path if you want to use this code.
+(In the experiment of substructre prediction, we creat target by: (1). mol = rdkit.Chem.MolFromSmiles('SMILES string') (2). target = rdkit.Chem.MolFromSmarts('SMARTS string') (3) mol.GetSubstructMatches(target))
 
 'mainCode.py' is the code that imported by 'experiment.ipynb'. Remember to change all the file path appear in this file to your local file path if you want to use this code.
 
