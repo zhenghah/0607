@@ -20,10 +20,14 @@ More visualization results corresponding to the figures in paper can be found ac
 |Figure 11|attention_result/OD prediction/attn_repeat100-tn|TN samples screened by substructures constraints|
 
 ## Experimental code
-'experiment.ipynb' is an example to run the program that used to predict odor descriptors.
+'od_data.ipynb' is used to collect SMILES and corresponding odor descriptors from The Good Scents Company (http://www.thegoodscentscompany.com/). You can collect data with this code directly after changing the save path at first line.
+
+'experiment.ipynb' is an example to run the program that used to predict substructures and odor descriptors. Remember to change all the file path appear in this file to your local file path if you want to use this code.
+(In the experiment of substructre prediction, we creat target by: (1). mol = rdkit.Chem.MolFromSmiles('SMILES string') (2). target = rdkit.Chem.MolFromSmarts('SMARTS string') (3). mol.GetSubstructMatches(target))
 
 'mainCode.py' is the code that imported by 'experiment.ipynb'. Remember to change all the file path appear in this file to your local file path if you want to use this code.
 
 'Transformer_mol3.py' is the code of proposed model mentioned in paper, and it is called by Transformer2OD_tada.modelBuild2 in 'mainCode.py'
 
 The version of Tensorflow used in this work is 2.8.
+The version of RDKit used in this work is 2021.09.4
