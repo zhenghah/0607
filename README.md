@@ -33,16 +33,8 @@ The version of Tensorflow used in this work is 2.8.
 The version of RDKit used in this work is 2021.09.4
 
 ## Dataset
-The dataset in this site is not authorized for use by copyright owners. 
+We collected SMILES and corresponding odor descriptors (ODs) from The Good Scents Company (TGSC) website http://www.thegoodscentscompany.com/ . 
 
-This site is for research purposes only. 
+‘smiles-website_odorant.txt’ records 4240 canonical SMILES (converted by RDKit) of odorant and their corresponding webpages on TGSC. The ODs for each SMILES can be obtained by accessing the webpage corresponding to the SMILES. Similarly, 'smiles-website_odorless.txt' contains 222 canonical SMILES (converted by RDKit) of molecules labeled as odorless and their corresponding web pages on TGSC. 
 
-**Fair Use**
-
-Copyright Disclaimer under section 107 of the Copyright Act of 1976, allowance is made for “fair use” for purposes such as criticism, comment, news reporting, teaching, scholarship, education and research. 
-
-Fair use is a use permitted by copyright statute that might otherwise be infringing. 
-
-If you wish to use the dataset from this site for purposes of your own that go beyond “fair use”, you must obtain permission from the copyright owner. 
-
-‘tgsc_odorant_1020.txt’ is the data of 4240 odorant molecules, ‘tgsc_odorless_1020.txt’ is the data of molecules labeled by odorless. And ‘chembl_smi.txt‘ is 100,000 SMILES used in the experiment of substructure prediction. 
+For copyright reasons, we cannot directly make the dataset that records the SMILES used in the experiment and their corresponding odor descriptors available in this GitHub repository. If you need the dataset anyway, please contact us by email (zheng.xiaofan.413@s.kyushu-u.ac.jp) . We would like to send you the dataset used in the experiments, however, please note that the copyright belongs to TGSC. 
